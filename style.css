@@ -105,3 +105,48 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .panel img { transition: none; }
 }
+
+/* Liquid blue blob cursor */
+#liquid-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 42% 58% 63% 37% / 43% 42% 58% 57%;
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 30% 25%, #bfdbfe 0%, transparent 25%),
+    radial-gradient(circle at 70% 75%, #2563eb 0%, #3b82f6 38%, #60a5fa 70%, #1e40af 100%);
+  box-shadow:
+    inset -12px -15px 25px rgba(15, 23, 42, 0.25),
+    inset 10px 10px 22px rgba(255, 255, 255, 0.45),
+    0 0 35px rgba(59, 130, 246, 0.45);
+  filter: blur(0.3px);
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.25s ease;
+  animation: blobMorph 5s ease-in-out infinite;
+}
+
+#liquid-cursor.visible {
+  opacity: 0.85;
+}
+
+@keyframes blobMorph {
+  0%, 100% {
+    border-radius: 42% 58% 63% 37% / 43% 42% 58% 57%;
+  }
+  50% {
+    border-radius: 61% 39% 41% 59% / 57% 63% 37% 43%;
+  }
+}
+
+/* Don't show on touch-only devices */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  #liquid-cursor {
+    display: none;
+  }
+}
