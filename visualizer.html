@@ -157,7 +157,7 @@ function frame(ts) {
       else v = 0.04 + 0.03 * Math.sin(ts / 600 + i * 0.35);
       const h = Math.max(3, v * H * 0.46);
       g.fillStyle = color(i, N); g.shadowColor = color(i, N); g.shadowBlur = live ? 14 : 4;
-      [W / 2 + i * step, W / 2 - (i + 1) * step].forEach((x) => { g.beginPath(); g.roundRect(x, H / 2 - h, bw, h * 2, bw / 2); g.fill(); });
+      [W / 2 + i * step, W / 2 - (i + 1) * step].forEach((x) => { g.beginPath(); if (g.roundRect) g.roundRect(x, H / 2 - h, bw, h * 2, bw / 2); else g.rect(x, H / 2 - h, bw, h * 2); g.fill(); });
     }
   } else {
     const grad = g.createLinearGradient(0, 0, W, 0);
