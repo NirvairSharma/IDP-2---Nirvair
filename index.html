@@ -477,5 +477,38 @@ createDotGrid(document.getElementById("dots"), {
   intro: true
 });
 </script>
+<script>const blob = document.createElement("div");
+blob.id = "liquid-cursor";
+document.body.appendChild(blob);
+
+let mouseX = -150;
+let mouseY = -150;
+let blobX = -150;
+let blobY = -150;
+
+document.addEventListener("mousemove", (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  blob.classList.add("visible");
+});
+
+document.addEventListener("mouseleave", () => {
+  blob.classList.remove("visible");
+});
+
+function animateBlob() {
+  blobX += (mouseX - blobX) * 0.12;
+  blobY += (mouseY - blobY) * 0.12;
+
+  blob.style.left = `${blobX}px`;
+  blob.style.top = `${blobY}px`;
+
+  requestAnimationFrame(animateBlob);
+}
+
+animateBlob();
+</script> 
+
+  
 </body>
 </html>
