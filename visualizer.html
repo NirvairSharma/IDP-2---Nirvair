@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#07070f; --blue:#5b7cff; --orange:#ff7a4d; --text:#e9ebff; --dim:#8d92b8; }
+* { box-sizing:border-box; }
+body { margin:0; padding:24px 20px 56px; min-height:100vh; font-family:"Figtree",system-ui,sans-serif; color:var(--text);
+  background:radial-gradient(ellipse at 50% 0%,#1a1740,transparent 60%),var(--bg); }
+.home { color:var(--blue); text-decoration:none; font-size:.95rem; }
+.home:hover { text-decoration:underline; }
+h1 { margin:12px 0 6px; text-align:center; font-size:clamp(2.2rem,7vw,3.4rem); font-weight:700;
+  background:linear-gradient(90deg,var(--blue),#b06bff,var(--orange)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.sub { text-align:center; margin:0 0 22px; color:var(--dim); }
+.wrap { max-width:1000px; margin:0 auto; }
+canvas { display:block; width:100%; height:min(420px,60vw); border-radius:16px; background:#04040a; border:1px solid #23244a; box-shadow:0 0 40px rgba(91,124,255,.18); }
+.row { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:20px 0 12px; }
+.btn { padding:11px 22px; border-radius:999px; border:2px solid var(--blue); background:transparent; color:var(--text); font:600 .95rem "Figtree",sans-serif; cursor:pointer; transition:background .2s, box-shadow .2s; }
+.btn:hover { background:rgba(91,124,255,.18); box-shadow:0 0 14px rgba(91,124,255,.5); }
+.btn.alt { border-color:var(--orange); } .btn.alt:hover { background:rgba(255,122,77,.16); box-shadow:0 0 14px rgba(255,122,77,.5); }
+.btn.mute { border-color:#3b3d6b; color:var(--dim); }
+.status { text-align:center; min-height:1.4em; color:var(--dim); margin:0 0 10px; }
+audio { display:block; width:100%; max-width:560px; margin:0 auto 14px; }
+.how { max-width:640px; margin:26px auto 0; text-align:center; font-size:.9rem; line-height:1.6; color:var(--dim); }
+[hidden] { display:none !important; }
+:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">&larr; Home</a>
+<h1>Visualizer</h1>
+<p class="sub">Watch sound move. Pick a song, use your microphone, or try the demo beat.</p>
+
+<div class="wrap">
+  <canvas id="cv" aria-label="Animated sound visualization"></canvas>
+
+  <div class="row">
+    <label class="btn" tabindex="0" id="fileLabel">Choose a song<input id="file" type="file" accept="audio/*" hidden></label>
+    <button class="btn" id="mic">Microphone</button>
+    <button class="btn alt" id="demo">Demo beat</button>
+    <button class="btn mute" id="stop">Stop</button>
+    <button class="btn mute" id="style" aria-pressed="false">Style: Bars</button>
+  </div>
+
+  <p class="status" id="status" aria-live="polite"></p>
+  <audio id="player" controls hidden></audio>
+
+  <p class="how">How it works: the browser listens to the sound and splits it into its frequencies about 60 times a second, using a method called a Fast Fourier Transform. Low sounds like drums sit in the middle, and high sounds spread out toward the edges. Each bar is one slice of the sound.</p>
+</div>
+
+<script>
+const cv = document.getElementById("cv"), g = cv.getContext("2d");
+const player = document.getElementById("player"), statusEl = document.getElementById("status");
+let ctx, analyser, mediaSrc, cleanup = null, wave = false, W = 0, H = 0;
+
+function setStatus(t) { statusEl.textContent = t; }
+function audio() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = ctx.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.8;
+    mediaSrc = ctx.createMediaElementSource(player);
+    mediaSrc.connect(analyser); mediaSrc.connect(ctx.destination);
+  }
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+function stopAll() {
+  if (cleanup) { cleanup(); cleanup = null; }
+  player.pause();
+}
+
+/* Song file */
+document.getElementById("file").addEventListener("change", (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  stopAll(); audio();
+  player.src = URL.createObjectURL(f); player.hidden = false; player.play();
+  setStatus("Playing: " + f.name);
+});
+document.getElementById("fileLabel").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); document.getElementById("file").click(); }
+});
+
+/* Microphone */
+document.getElementById("mic").addEventListener("click", async () => {
+  stopAll(); player.hidden = true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const c = audio(), s = c.createMediaStreamSource(stream);
+    s.connect(analyser); // not connected to the speakers, so there is no echo
+    cleanup = () => { stream.getTracks().forEach((t) => t.stop()); s.disconnect(); };
+    setStatus("Listening to your microphone. Try talking, clapping or humming.");
+  } catch (err) {
+    setStatus("The microphone is blocked. Allow it in your browser's address bar, or try a song file.");
+  }
+});
+
+/* Demo beat: a small drum machine made in code */
+document.getElementById("demo").addEventListener("click", () => {
+  stopAll(); player.hidden = true;
+  const c = audio(), step = 60 / 112 / 4;
+  const nb = c.createBuffer(1, c.sampleRate * 0.3, c.sampleRate), nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const out = c.createGain(); out.gain.value = 0.55; out.connect(analyser); out.connect(c.destination);
+
+  const env = (gn, t, p, d) => { gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(p, t + 0.006); gn.gain.exponentialRampToValueAtTime(0.0001, t + d); };
+  const osc = (type, f, t, d, p, f2) => { const o = c.createOscillator(), gn = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d * 0.5); env(gn, t, p, d); o.connect(gn); gn.connect(out); o.start(t); o.stop(t + d + 0.05); };
+  const hit = (hp, t, d, p) => { const s = c.createBufferSource(), f = c.createBiquadFilter(), gn = c.createGain(); s.buffer = nb; f.type = "highpass"; f.frequency.value = hp; env(gn, t, p, d); s.connect(f); f.connect(gn); gn.connect(out); s.start(t); s.stop(t + d + 0.05); };
+
+  const bass = [55,0,55,0,65.4,0,55,0, 73.4,0,73.4,0,65.4,0,55,0];
+  const lead = [440,523.3,659.3,523.3,440,523.3,784,659.3];
+  function play(s, t) {
+    if (s % 4 === 0) osc("sine", 150, t, 0.35, 1, 45);       // kick
+    if (s % 8 === 4) { hit(1500, t, 0.18, 0.6); osc("triangle", 200, t, 0.1, 0.4, 150); } // snare
+    if (s % 4 === 2) hit(7000, t, 0.05, 0.35);                // hi-hat
+    if (bass[s]) osc("sawtooth", bass[s], t, 0.22, 0.25);     // bass
+    if (s % 2 === 0) osc("square", lead[(s / 2) % 8], t, 0.18, 0.06); // melody
+  }
+  let next = c.currentTime + 0.05, i = 0;
+  const id = setInterval(() => { while (next < c.currentTime + 0.12) { play(i % 16, next); next += step; i++; } }, 25);
+  cleanup = () => { clearInterval(id); out.disconnect(); };
+  setStatus("Playing the demo beat.");
+});
+
+document.getElementById("stop").addEventListener("click", () => { stopAll(); setStatus("Stopped."); });
+const styleBtn = document.getElementById("style");
+styleBtn.addEventListener("click", () => {
+  wave = !wave; styleBtn.textContent = "Style: " + (wave ? "Wave" : "Bars"); styleBtn.setAttribute("aria-pressed", wave);
+});
+
+/* Drawing */
+function resize() {
+  const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; g.setTransform(d, 0, 0, d, 0, 0);
+}
+window.addEventListener("resize", resize); resize();
+
+function color(i, n, a) { return "hsla(" + (18 + (i / n) * 222) + ",95%,62%," + (a === undefined ? 1 : a) + ")"; }
+
+function frame(ts) {
+  requestAnimationFrame(frame);
+  g.clearRect(0, 0, W, H);
+  const live = analyser && (cleanup || !player.paused);
+  const N = Math.max(24, Math.floor(W / 14));
+  let freq, time;
+  if (analyser) { freq = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(freq); time = new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(time); }
+
+  if (!wave) {
+    const usable = freq ? freq.length * 0.6 : 1, step = (W / 2) / N, bw = Math.max(3, step * 0.62);
+    for (let i = 0; i < N; i++) {
+      let v;
+      if (live) { const a = Math.floor(Math.pow(i / N, 1.8) * usable); v = Math.max(freq[a], freq[a + 1] || 0) / 255; }
+      else v = 0.04 + 0.03 * Math.sin(ts / 600 + i * 0.35);
+      const h = Math.max(3, v * H * 0.46);
+      g.fillStyle = color(i, N); g.shadowColor = color(i, N); g.shadowBlur = live ? 14 : 4;
+      [W / 2 + i * step, W / 2 - (i + 1) * step].forEach((x) => { g.beginPath(); g.roundRect(x, H / 2 - h, bw, h * 2, bw / 2); g.fill(); });
+    }
+  } else {
+    const grad = g.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0, "#5b7cff"); grad.addColorStop(0.5, "#b06bff"); grad.addColorStop(1, "#ff7a4d");
+    g.strokeStyle = grad; g.lineWidth = 3; g.shadowColor = "#b06bff"; g.shadowBlur = 16; g.beginPath();
+    const pts = 400;
+    for (let i = 0; i <= pts; i++) {
+      const y = live ? ((time[Math.floor(i / pts * (time.length - 1))] - 128) / 128) * H * 0.4 : Math.sin(ts / 700 + i * 0.05) * 6;
+      i ? g.lineTo(i / pts * W, H / 2 + y) : g.moveTo(0, H / 2 + y);
+    }
+    g.stroke();
+  }
+  g.shadowBlur = 0;
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
