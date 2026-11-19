@@ -5,14 +5,23 @@ const ERAS = [
     short: "Early music",
     years: "Beginnings to 1600",
     title: "Early music",
-    image: "timeline-1.jpg",
-    alt: "Musicians playing a lute, violin, viol and harpsichord in an old painting",
-    text: "Music is older than writing. Flutes made from bone, found in caves in Germany, are at least 35,000 years old. For thousands of years songs were passed on by ear as folk music, then later written down. By the 1500s, people were playing lutes, viols and early keyboards at home and at court.",
+    image: "timeline-early.jpg",
+    alt: "Placeholder picture for early music",
+    text: "Music is older than writing. Bone flutes found in caves in Germany are about 40,000 years old, which makes them some of the oldest instruments ever found. For thousands of years songs were passed on by ear as folk music. In the Middle Ages, monks developed ways of writing music down, and by the 1500s people were playing lutes, viols and early keyboards at home and at court.",
     fact: "Most early songs were never written down, so we only know them because people kept singing them."
   },
   {
+    short: "Baroque",
+    years: "About 1600 to 1750",
+    title: "Baroque",
+    image: "timeline-1.jpg",
+    alt: "Musicians playing a lute, violin, viol and harpsichord in an old painting",
+    text: "Opera was born in Italy around 1600, and the orchestra began to take shape, led by the violin family. Baroque music is rich and decorated, with many melodies woven together. Johann Sebastian Bach, George Frideric Handel and Antonio Vivaldi were its stars. Vivaldi's The Four Seasons was published in 1725, and Handel's Messiah was first performed in 1742.",
+    fact: "Bach wrote so much music that his works are catalogued by number, and the list goes past 1,000."
+  },
+  {
     short: "Classical",
-    years: "About 1750 to 1820",
+    years: "About 1750 to 1830",
     title: "Classical",
     image: "timeline-2.jpg",
     alt: "A conductor leading an orchestra and choir on stage",
