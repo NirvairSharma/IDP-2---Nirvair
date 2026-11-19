@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root { --wood:#26160d; --wood-2:#3a2316; --gold:#d4a94f; --ivory:#fbf6ea; --ink:#f3e7cf; }
+* { box-sizing:border-box; }
+body { margin:0; padding:24px 20px 56px; min-height:100vh; font-family:"Figtree",system-ui,sans-serif; color:var(--ink);
+  background:radial-gradient(ellipse at top,#4a2e1b,transparent 65%),linear-gradient(180deg,var(--wood-2),var(--wood)); }
+.home { color:var(--gold); text-decoration:none; font-size:.95rem; }
+.home:hover { text-decoration:underline; }
+h1 { margin:12px 0 6px; text-align:center; font-family:"Cormorant Garamond",Georgia,serif; font-size:clamp(2.4rem,7vw,3.6rem); }
+.sub { text-align:center; margin:0 0 24px; opacity:.8; }
+.bar { max-width:900px; margin:0 auto 22px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; }
+.tabs { display:flex; gap:8px; }
+.tabs button { padding:10px 26px; border-radius:999px; border:2px solid var(--gold); background:transparent; color:var(--gold); font:600 1rem "Figtree",sans-serif; cursor:pointer; }
+.tabs button[aria-pressed="true"] { background:var(--gold); color:var(--wood); }
+.vol { display:flex; align-items:center; gap:10px; font-size:.9rem; }
+.vol input { accent-color:var(--gold); width:140px; }
+.frame { max-width:900px; margin:0 auto; padding:22px; border-radius:14px; border:2px solid var(--gold); background:#150b05; box-shadow:0 14px 40px rgba(0,0,0,.5); }
+
+/* piano */
+.piano { position:relative; display:flex; height:min(300px,55vw); user-select:none; touch-action:manipulation; }
+.white { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; padding-bottom:10px; gap:2px;
+  background:linear-gradient(180deg,#fffdf7,var(--ivory)); color:#5a4630; border:1px solid #b9a88a; border-radius:0 0 8px 8px; cursor:pointer; font:500 .75rem "Figtree",sans-serif; }
+.black { position:absolute; top:0; height:60%; width:calc(100% / 11 * .6); z-index:2; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px;
+  background:linear-gradient(180deg,#2b2b2b,#000); color:#bbb; border:1px solid #000; border-radius:0 0 6px 6px; cursor:pointer; font:500 .7rem "Figtree",sans-serif; }
+.white.down { background:#f0d98e; } .black.down { background:#6b5522; }
+
+/* drums */
+.kit { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; user-select:none; touch-action:manipulation; }
+.pad { aspect-ratio:1.4; border-radius:50%; border:3px solid var(--gold); background:radial-gradient(circle at 35% 30%,#7a2b1c,#3b120b); color:var(--ink);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font:600 1.05rem "Figtree",sans-serif; cursor:pointer; transition:transform .08s; }
+.pad small { font-weight:500; opacity:.75; }
+.pad.cym { background:radial-gradient(circle at 35% 30%,#a8863a,#5c4515); }
+.pad.kick { grid-column:1/-1; aspect-ratio:auto; height:90px; border-radius:50px; }
+.pad.down { transform:scale(.94); border-color:#fff; filter:brightness(1.4); }
+.hint { text-align:center; margin:18px 0 0; font-size:.9rem; opacity:.75; }
+[hidden] { display:none !important; }
+:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+@media (max-width:560px) { .white { font-size:.6rem; } .black { font-size:0; } .kit { gap:10px; } .pad { font-size:.85rem; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">&larr; Home</a>
+<h1>Play</h1>
+<p class="sub">Click, tap, or use your keyboard.</p>
+
+<div class="bar">
+  <div class="tabs">
+    <button id="tab-piano" aria-pressed="true">Piano</button>
+    <button id="tab-drums" aria-pressed="false">Drums</button>
+  </div>
+  <label class="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.05" value="0.7"></label>
+</div>
+
+<div class="frame">
+  <div id="piano" class="piano" role="group" aria-label="Piano keys"></div>
+  <div id="kit" class="kit" role="group" aria-label="Drum pads" hidden></div>
+</div>
+<p class="hint" id="hint"></p>
+
+<script>
+let ctx, master, noiseBuf;
+const vol = document.getElementById("vol");
+vol.addEventListener("input", () => { if (master) master.gain.value = +vol.value; });
+
+function audio() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain(); master.gain.value = +vol.value; master.connect(ctx.destination);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+function env(g, t, peak, dur) {
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+}
+function tone(c, t, f0, f1, dur, peak) {
+  const o = c.createOscillator(), g = c.createGain();
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.5);
+  env(g, t, peak, dur); o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+}
+function noise(c, t, hp, dur, peak) {
+  const s = c.createBufferSource(); s.buffer = noiseBuf;
+  const f = c.createBiquadFilter(); f.type = "highpass"; f.frequency.value = hp;
+  const g = c.createGain(); env(g, t, peak, dur);
+  s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + 0.05);
+}
+
+/* ---- Piano ---- */
+const NAMES = ["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"];
+const WHITE = [60,62,64,65,67,69,71,72,74,76,77];
+const WKEYS = ["a","s","d","f","g","h","j","k","l",";","'"];
+const BLACK = [[61,"w",0],[63,"e",1],[66,"t",3],[68,"y",4],[70,"u",5],[73,"o",7],[75,"p",8]];
+const noteMap = {}, elByNote = {};
+
+function playNote(midi) {
+  const c = audio(), t = c.currentTime, f = 440 * Math.pow(2, (midi - 69) / 12);
+  const g = c.createGain(); env(g, t, 0.5, 1.8); g.connect(master);
+  [["triangle",1,1],["sine",2,0.35],["sine",3,0.12]].forEach(([type, m, a]) => {
+    const o = c.createOscillator(), og = c.createGain();
+    o.type = type; o.frequency.value = f * m; og.gain.value = a;
+    o.connect(og); og.connect(g); o.start(t); o.stop(t + 1.9);
+  });
+  flash(elByNote[midi]);
+}
+const pianoEl = document.getElementById("piano");
+function makeKey(midi, key, cls, style) {
+  const b = document.createElement("button");
+  b.className = cls; b.setAttribute("aria-label", NAMES[midi % 12]);
+  b.innerHTML = "<span>" + NAMES[midi % 12] + "</span><span>" + key.toUpperCase() + "</span>";
+  if (style) b.style.left = style;
+  b.addEventListener("pointerdown", (e) => { e.preventDefault(); playNote(midi); });
+  pianoEl.appendChild(b); elByNote[midi] = b; noteMap[key] = midi;
+}
+WHITE.forEach((m, i) => makeKey(m, WKEYS[i], "white"));
+BLACK.forEach(([m, k, idx]) => makeKey(m, k, "black", "calc(100% / 11 * " + (idx + 1) + " - 100% / 11 * 0.3)"));
+
+/* ---- Drums ---- */
+const DRUMS = [
+  { name:"Crash",    key:"q", cls:"cym", hit:(c,t)=>noise(c,t,3000,1.4,0.5) },
+  { name:"Hi-hat",   key:"w", cls:"cym", hit:(c,t)=>noise(c,t,7000,0.07,0.5) },
+  { name:"Ride",     key:"e", cls:"cym", hit:(c,t)=>{ noise(c,t,5000,0.7,0.35); tone(c,t,3000,2900,0.3,0.05); } },
+  { name:"High tom", key:"a", cls:"",    hit:(c,t)=>tone(c,t,220,130,0.35,0.8) },
+  { name:"Snare",    key:"s", cls:"",    hit:(c,t)=>{ noise(c,t,1500,0.2,0.7); tone(c,t,200,150,0.12,0.5); } },
+  { name:"Low tom",  key:"d", cls:"",    hit:(c,t)=>tone(c,t,140,70,0.45,0.9) },
+  { name:"Kick",     key:" ", cls:"kick",label:"Space", hit:(c,t)=>tone(c,t,160,45,0.4,1) }
+];
+const drumMap = {}, kitEl = document.getElementById("kit");
+DRUMS.forEach((d) => {
+  const b = document.createElement("button");
+  b.className = "pad " + d.cls;
+  b.innerHTML = d.name + "<small>" + (d.label || d.key.toUpperCase()) + "</small>";
+  d.el = b; drumMap[d.key] = d;
+  b.addEventListener("pointerdown", (e) => { e.preventDefault(); hitDrum(d); });
+  kitEl.appendChild(b);
+});
+function hitDrum(d) { const c = audio(); d.hit(c, c.currentTime); flash(d.el); }
+
+function flash(el) { if (!el) return; el.classList.add("down"); setTimeout(() => el.classList.remove("down"), 130); }
+
+/* ---- Tabs and keyboard ---- */
+let mode = "piano";
+const hint = document.getElementById("hint");
+function setMode(m) {
+  mode = m;
+  pianoEl.hidden = m !== "piano"; kitEl.hidden = m !== "drums";
+  document.getElementById("tab-piano").setAttribute("aria-pressed", m === "piano");
+  document.getElementById("tab-drums").setAttribute("aria-pressed", m === "drums");
+  hint.textContent = m === "piano"
+    ? "Keyboard: the A to ' row plays the white keys, and W E T Y U O P play the black keys."
+    : "Keyboard: Q W E are the cymbals, A S D are the snare and toms, and Space is the kick.";
+}
+document.getElementById("tab-piano").onclick = () => setMode("piano");
+document.getElementById("tab-drums").onclick = () => setMode("drums");
+setMode("piano");
+
+document.addEventListener("keydown", (e) => {
+  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (mode === "piano" && noteMap[k] !== undefined) { e.preventDefault(); playNote(noteMap[k]); }
+  else if (mode === "drums" && drumMap[k]) { e.preventDefault(); hitDrum(drumMap[k]); }
+});
+</script>
+</body>
+</html>
