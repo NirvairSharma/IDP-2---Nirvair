@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --sun:#ffd23f; --coral:#ff5a5f; --teal:#12b5b0; --purple:#6c4cf1; --ink:#1b1340; --cream:#fff6dc; }
+* { box-sizing:border-box; }
+body { margin:0; padding:24px 20px 56px; min-height:100vh; font-family:"Fredoka",system-ui,sans-serif; color:var(--ink);
+  background:radial-gradient(circle at 15% 10%,#ffe99a,transparent 45%),radial-gradient(circle at 90% 90%,#ffc9d0,transparent 45%),var(--cream); }
+.home { color:var(--purple); text-decoration:none; font-weight:500; }
+.home:hover { text-decoration:underline; }
+h1 { margin:10px 0 22px; text-align:center; font-size:clamp(2.4rem,8vw,3.8rem); font-weight:700; color:var(--purple); text-shadow:3px 3px 0 var(--sun); }
+.card { max-width:680px; margin:0 auto; padding:26px; background:#fff; border:4px solid var(--ink); border-radius:26px; box-shadow:8px 8px 0 var(--ink); }
+.meta { display:flex; justify-content:space-between; font-weight:500; margin-bottom:8px; }
+.track { height:14px; background:#eee; border:3px solid var(--ink); border-radius:99px; overflow:hidden; margin-bottom:22px; }
+#bar { height:100%; width:0; background:var(--teal); transition:width .4s ease; }
+#q { font-size:clamp(1.3rem,4vw,1.7rem); font-weight:600; line-height:1.3; margin:0 0 18px; }
+.sound { display:inline-block; margin:0 0 18px; padding:12px 22px; border:3px solid var(--ink); border-radius:99px; background:var(--sun); font:600 1.05rem "Fredoka",sans-serif; cursor:pointer; box-shadow:3px 3px 0 var(--ink); }
+.sound:active { transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
+.opts { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.opt { display:flex; align-items:center; gap:10px; padding:14px; text-align:left; font:500 1.05rem "Fredoka",sans-serif; color:var(--ink); background:#fff; border:3px solid var(--ink); border-radius:16px; cursor:pointer; transition:transform .1s, background .15s; }
+.opt:hover:not(:disabled) { transform:translateY(-2px); background:#f0ebff; }
+.opt .n { flex:none; width:28px; height:28px; display:grid; place-items:center; border-radius:50%; background:var(--purple); color:#fff; font-size:.9rem; font-weight:600; }
+.opt.right { background:#c4f2df; border-color:#0d8a6a; } .opt.wrong { background:#ffd3d3; border-color:#c4373b; }
+.opt:disabled { cursor:default; }
+.fb { margin-top:18px; padding:14px 16px; border-radius:16px; background:#f4f0ff; border:3px solid var(--purple); line-height:1.45; }
+.fb strong { display:block; font-size:1.15rem; margin-bottom:2px; }
+.next { margin-top:14px; padding:12px 28px; border:3px solid var(--ink); border-radius:99px; background:var(--coral); color:#fff; font:600 1.05rem "Fredoka",sans-serif; cursor:pointer; box-shadow:3px 3px 0 var(--ink); }
+.next:active { transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
+.result { text-align:center; }
+.big { font-size:clamp(3rem,12vw,5rem); font-weight:700; color:var(--purple); line-height:1; margin:8px 0; }
+.result p { font-size:1.2rem; margin:8px 0; }
+.best { color:#6a6488; font-size:1rem !important; }
+[hidden] { display:none !important; }
+:focus-visible { outline:4px solid var(--purple); outline-offset:3px; }
+.bit { position:fixed; top:-20px; width:10px; height:16px; z-index:10; animation:fall 2.8s linear forwards; }
+@keyframes fall { to { transform:translateY(110vh) rotate(720deg); } }
+@media (max-width:520px) { .opts { grid-template-columns:1fr; } .card { padding:18px; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">&larr; Home</a>
+<h1>Music Quiz</h1>
+
+<main class="card">
+  <section id="quiz">
+    <div class="meta"><span id="count"></span><span id="scoreLive"></span></div>
+    <div class="track"><div id="bar"></div></div>
+    <h2 id="q"></h2>
+    <button class="sound" id="soundBtn" hidden>&#9654; Play sound</button>
+    <div class="opts" id="opts"></div>
+    <div class="fb" id="fb" hidden>
+      <strong id="verdict"></strong><span id="why"></span><br>
+      <button class="next" id="next">Next question</button>
+    </div>
+  </section>
+
+  <section class="result" id="result" hidden>
+    <p>Your score</p>
+    <div class="big" id="final"></div>
+    <p id="msg"></p>
+    <p class="best" id="best"></p>
+    <button class="next" id="again">Play again</button>
+  </section>
+</main>
+
+<script>
+const QUESTIONS = [
+  { q:"The oldest known musical instruments are about 35,000 years old. What were they made from?", options:["Bone","Gold","Clay","Bamboo"], answer:0, why:"Flutes made from bone have been found in caves in Germany." },
+  { q:"Which composer's Ninth Symphony, first performed in 1824, was the first major symphony to add a choir?", options:["Mozart","Beethoven","Haydn","Bach"], answer:1, why:"Beethoven's Ninth ends with a famous choral finale." },
+  { q:"In which city did jazz begin in the early 1900s?", options:["Chicago","New York","New Orleans","Memphis"], answer:2, why:"Jazz grew in New Orleans by mixing blues, ragtime and brass band music." },
+  { q:"Which 1954 recording by Bill Haley and His Comets became a huge hit in 1955?", options:["Hound Dog","Rock Around the Clock","Johnny B. Goode","Jailhouse Rock"], answer:1, why:"\"Rock Around the Clock\" helped bring rock and roll to a young audience." },
+  { q:"Hip-hop began in the early 1970s in which part of New York?", options:["The Bronx","Brooklyn","Queens","Harlem"], answer:0, why:"Hip-hop started at block parties in the Bronx." },
+  { q:"Which of these is NOT one of the four main elements of hip-hop?", options:["DJing","Rapping (MCing)","Opera singing","Graffiti art"], answer:2, why:"The four elements are DJing, rapping, breaking (breakdancing) and graffiti art." },
+  { q:"MIDI, a standard from 1983, lets keyboards and computers talk to each other. What does it send?", options:["Recorded sound","Pictures","Electricity","Instructions like which note to play"], answer:3, why:"MIDI sends instructions, not sound, so the files are tiny." },
+  { q:"Which music streaming service launched in 2008?", options:["Napster","iTunes Store","Spotify","Vinyl Club"], answer:2, why:"Napster started in 1999 and the iTunes Store in 2003. Spotify launched in 2008." },
+  { q:"Press play. Which part of a drum kit makes this sound?", sound:"hat", options:["Kick drum","Hi-hat","Low tom","Snare drum"], answer:1, why:"A short, bright, hissy tick is a hi-hat." },
+  { q:"Press play. You will hear two notes. Which one is higher?", sound:"tones", options:["The first note","The second note","They are the same"], answer:1, why:"The first note vibrates 262 times a second and the second 440 times a second. Faster vibrations sound higher." }
+];
+
+const $ = (id) => document.getElementById(id);
+let order, idx, score, locked, ctx;
+
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* Sounds, made in code */
+function audio() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended") ctx.resume(); return ctx; }
+function beep(c, f, t, d) {
+  const o = c.createOscillator(), g = c.createGain(); o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.4, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.05);
+}
+function playSound(kind) {
+  const c = audio(), t = c.currentTime;
+  if (kind === "tones") { beep(c, 261.6, t, 0.6); beep(c, 440, t + 0.9, 0.6); return; }
+  const buf = c.createBuffer(1, c.sampleRate * 0.2, c.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  s.buffer = buf; f.type = "highpass"; f.frequency.value = 7000;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.6, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+  s.connect(f); f.connect(g); g.connect(c.destination); s.start(t); s.stop(t + 0.2);
+}
+
+/* Quiz flow */
+function start() {
+  order = shuffle(QUESTIONS.map((_, i) => i)); idx = 0; score = 0;
+  $("quiz").hidden = false; $("result").hidden = true; show();
+}
+function show() {
+  locked = false;
+  const q = QUESTIONS[order[idx]];
+  $("count").textContent = "Question " + (idx + 1) + " of " + QUESTIONS.length;
+  $("scoreLive").textContent = "Score: " + score;
+  $("bar").style.width = (idx / QUESTIONS.length * 100) + "%";
+  $("q").textContent = q.q;
+  const sb = $("soundBtn"); sb.hidden = !q.sound; sb.onclick = () => playSound(q.sound);
+  $("fb").hidden = true;
+  const box = $("opts"); box.innerHTML = "";
+  const opts = q.sound === "tones" ? q.options.map((t, i) => ({ t, ok: i === q.answer })) : shuffle(q.options.map((t, i) => ({ t, ok: i === q.answer })));
+  opts.forEach((o, k) => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.dataset.ok = o.ok ? "1" : "0";
+    b.innerHTML = '<span class="n">' + (k + 1) + "</span>"; b.appendChild(document.createTextNode(o.t));
+    b.onclick = () => pick(b, o.ok);
+    box.appendChild(b);
+  });
+}
+function pick(b, ok) {
+  if (locked) return; locked = true;
+  document.querySelectorAll(".opt").forEach((x) => { x.disabled = true; if (x.dataset.ok === "1") x.classList.add("right"); });
+  if (ok) score++; else b.classList.add("wrong");
+  $("scoreLive").textContent = "Score: " + score;
+  $("verdict").textContent = ok ? "Correct!" : "Not quite.";
+  $("why").textContent = QUESTIONS[order[idx]].why;
+  $("next").textContent = idx === QUESTIONS.length - 1 ? "See my score" : "Next question";
+  $("fb").hidden = false; $("next").focus();
+}
+function next() {
+  idx++;
+  if (idx < QUESTIONS.length) show(); else finish();
+}
+function finish() {
+  $("quiz").hidden = true; $("result").hidden = false;
+  const n = QUESTIONS.length;
+  $("final").textContent = score + " / " + n;
+  $("msg").textContent = score >= 9 ? "Music master! Amazing ears." : score >= 6 ? "Great job! You know your music." : score >= 3 ? "Nice start. Try the timeline, then play again." : "Keep listening. Check the timeline and try again.";
+  let best = 0;
+  try { best = Math.max(+localStorage.getItem("musicQuizBest") || 0, score); localStorage.setItem("musicQuizBest", best); } catch (e) { best = score; }
+  $("best").textContent = "Best score on this device: " + best + " / " + n;
+  if (score >= 8 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) confetti();
+}
+function confetti() {
+  const cols = ["#ffd23f", "#ff5a5f", "#12b5b0", "#6c4cf1"];
+  for (let i = 0; i < 70; i++) {
+    const d = document.createElement("div"); d.className = "bit";
+    d.style.left = Math.random() * 100 + "vw"; d.style.background = cols[i % 4];
+    d.style.animationDelay = Math.random() * 0.8 + "s"; document.body.appendChild(d);
+    setTimeout(() => d.remove(), 4200);
+  }
+}
+
+$("next").onclick = next;
+$("again").onclick = start;
+document.addEventListener("keydown", (e) => {
+  if ($("quiz").hidden) return;
+  if (!locked && e.key >= "1" && e.key <= "4") { const b = document.querySelectorAll(".opt")[+e.key - 1]; if (b) b.click(); }
+  else if (locked && e.key === "Enter") { e.preventDefault(); next(); }
+});
+start();
+</script>
+</body>
+</html>
