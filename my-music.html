@@ -1,8 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>My Music · Nirvair Sharma</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Music · Nirvair Sharma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="music-page"><main class="music-main"><section class="music-hero"><img src="images/music-panel.jpg" alt="Sleeping elephant drifting across musical notes beneath a crescent moon"><h1 class="music-title">Music Played By Me</h1></section><section class="music-card"><h2>Music Played By Me</h2><p>A little piece of music, shared with everyone.</p><audio controls preload="metadata"><source src="Music/VID_20261025_230347_587_bsl.mp3" type="audio/mpeg">Your browser does not support the audio player.</audio></section></main><script src="site.js" defer></script></body></html>
+<body class="music-page">
+  <main class="music-main">
+    <section class="music-hero" aria-labelledby="music-title">
+      <img
+        src="images/music-panel.jpg"
+        alt="A sleeping figure beneath a crescent moon, surrounded by musical notes">
+      <h1 class="music-title" id="music-title">Music Played By Me</h1>
+    </section>
+
+    <section class="music-card" aria-label="My music player">
+      <h2>Listen and enjoy</h2>
+      <p>A little piece of music, shared with everyone.</p>
+      <audio controls preload="metadata">
+        <source src="Music/VID_20261025_230347_587_bsl.mp3" type="audio/mpeg">
+        Your browser does not support the audio player.
+      </audio>
+      <p class="music-note">Press play to listen.</p>
+    </section>
+  </main>
+
+  <script src="site.js" defer></script>
+</body>
+</html>
